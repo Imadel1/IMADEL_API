@@ -1,0 +1,39 @@
+{
+  "name": "imadel-api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon index.js",
+    "start": "node index.js",
+    "seed:admin": "node Utils/seedAdmin.js",
+    "seed:data": "node Utils/seedData.js",
+    "seed:all": "npm run seed:admin && npm run seed:data"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.19.3",
+    "morgan": "^1.10.1",
+    "multer": "^2.0.2",
+    "nodemailer": "^7.0.10",
+    "path": "^0.12.7"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Aisha18-queen/Imadel-API.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Aisha18-queen/Imadel-API/issues"
+  },
+  "homepage": "https://github.com/Aisha18-queen/Imadel-API#readme"
+}
