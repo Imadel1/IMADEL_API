@@ -30,10 +30,17 @@ const app = express();
 connectDB();
 
 // Middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: ["http://localhost:5173", "http://127.0.0.1:5173"], // adjust as needed
+    credentials: true, // only if needed
+  })
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-if (process.env.NODE_ENV !== 'production') app.use(morgan('dev'));
+
+if (process.env.NODE_ENV !== "production") app.use(morgan("dev"));
 
 // Create uploads folder if it doesn't exist
 import fs from 'fs';
