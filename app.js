@@ -65,7 +65,6 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/donations', donationRoutes);
 
-console.log("Donation routes loaded:", donationRoutes);
 
 // Health check
 app.get('/', (req, res) => res.json({ message: 'IMADEL API is running' }));
@@ -73,5 +72,10 @@ app.get('/', (req, res) => res.json({ message: 'IMADEL API is running' }));
 // Error handlers
 app.use(notFound);
 app.use(errorHandler);
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+}); 
 
 export default app;

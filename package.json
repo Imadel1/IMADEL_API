@@ -1,7 +1,7 @@
 {
   "name": "imadel-api",
   "version": "1.0.0",
-  "description": "",
+  "description": "IMADEL NGO API",
   "main": "app.js",
   "type": "module",
   "scripts": {
