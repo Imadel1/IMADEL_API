@@ -65,6 +65,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/donations', donationRoutes);
 
+console.log("Donation routes loaded:", donationRoutes);
+
 // Health check
 app.get('/', (req, res) => res.json({ message: 'IMADEL API is running' }));
 
