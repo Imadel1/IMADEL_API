@@ -15,7 +15,7 @@ export const submitApplication = async (req, res) => {
       phone,
       address,
       resume,
-      coverLetter, 
+      coverLetter,
     } = req.body;
 
     // Validate required fields
@@ -28,7 +28,6 @@ export const submitApplication = async (req, res) => {
 
     // Check if job exists
     const job = await Job.findById(jobId);
-
     if (!job) {
       return res.status(404).json({
         success: false,
@@ -36,25 +35,16 @@ export const submitApplication = async (req, res) => {
       });
     }
 
-    // Check if job is still open
-    if (job.status !== 'open') {
+    // Check job status and deadline
+    if (job.status !== 'open' || new Date(job.deadline) < new Date()) {
       return res.status(400).json({
         success: false,
-        message: 'This job position is no longer accepting applications'
-      });
-    }
-
-    // Check if deadline has passed
-    if (new Date(job.deadline) < new Date()) {
-      return res.status(400).json({
-        success: false,
-        message: 'The application deadline has passed'
+        message: 'This job is no longer accepting applications'
       });
     }
 
     // Check if user already applied
     const existingApplication = await Application.findOne({ job: jobId, email });
-
     if (existingApplication) {
       return res.status(400).json({
         success: false,
@@ -62,7 +52,7 @@ export const submitApplication = async (req, res) => {
       });
     }
 
-    // Create application
+    // Save application
     const application = await Application.create({
       job: jobId,
       jobTitle: job.title,
@@ -74,70 +64,98 @@ export const submitApplication = async (req, res) => {
       coverLetter,
     });
 
-    // Send confirmation email to applicant
-    try {
-      await sendEmail({
-        email: application.email,
-        subject: `Application Received - ${job.title}`,
-        html: `
-          <h1>Merci pour votre candidature!</h1>
-          <p>Bonjour ${fullName} ,</p>
-          <p>Nous avons bien reçu votre candidature pour le poste de <strong>${job.title}</strong>.</p>
-          <p>Notre équipe examinera votre candidature et vous contactera si votre profil correspond à nos besoins.</p>
-          <br>
-          <p><strong>Détails de votre candidature:</strong></p>
-          <ul>
-            <li>Poste: ${job.title}</li>
-            <li>Lieu: ${job.location}</li>
-            <li>Date de candidature: ${new Date().toLocaleDateString('fr-FR')}</li>
-          </ul>
-          <br>
-          <p>Cordialement,</p>
-          <p><strong>L'équipe IMADEL</strong></p>
-        `
-      });
-      console.log('✅ Confirmation email sent to applicant:', application.email);
-    } catch (emailError) {
-      console.error('❌ Failed to send confirmation email:', emailError.message);
-    }
-
-    // Send notification email to admin
-    try {
-      await sendEmail({
-        email: process.env.ADMIN_EMAIL || 'admin@imadel.org',
-        subject: `New Job Application - ${job.title}`,
-        html: `
-          <h2>Nouvelle candidature reçue</h2>
-          <p><strong>Poste:</strong> ${job.title}</p>
-          <p><strong>Candidat:</strong> ${fullName} </p>
-          <p><strong>Email:</strong> ${email}</p>
-          <p><strong>Téléphone:</strong> ${phone}</p>
-          <p><strong>Address:</strong> ${address}</p>
-          <br>
-          <p><strong>CV:</strong> <a href="${resume}">Télécharger le CV</a></p>
-          <br>
-          <p><strong>Lettre de motivation:</strong></p>
-          <p>${coverLetter}</p>
-        //${linkedIn ? `<p><strong>LinkedIn:</strong> <a href="${linkedIn}">${linkedIn}</a></p>` : ''}
-        //${portfolio ? `<p><strong>Portfolio:</strong> <a href="${portfolio}">${portfolio}</a></p>` : ''}
-        // `
-      });
-      console.log('✅ Admin notification email sent');
-    } catch (emailError) {
-      console.error('❌ Failed to send admin notification:', emailError.message);
-    }
-
     res.status(201).json({
       success: true,
       message: 'Application submitted successfully',
       application: {
         id: application._id,
         jobTitle: application.jobTitle,
-        applicantName: `${application.fullName}`,
+        applicantName: application.fullName,
         status: application.status,
         appliedAt: application.appliedAt
       }
     });
+
+    // Send emails asynchronously without blocking response
+    try {
+     await sendEmail({
+  email: application.email,
+  subject: `Confirmation de candidature - ${job.title}`,
+  html: `
+    <h1>Confirmation de réception de votre candidature</h1>
+    <p>Bonjour ${fullName},</p>
+    <p>Nous vous remercions d’avoir postulé pour le poste de <strong>${job.title}</strong> au sein de notre organisation.</p>
+    <p>Votre candidature a bien été enregistrée et sera examinée par notre équipe de recrutement.</p>
+    <p>Nous vous contacterons si votre profil correspond à nos besoins.</p>
+    <br>
+    <p><strong>Détails de votre candidature :</strong></p>
+    <ul>
+      <li>Poste : ${job.title}</li>
+      <li>Lieu : ${job.location}</li>
+      <li>Date de candidature : ${new Date().toLocaleDateString('fr-FR')}</li>
+    </ul>
+    <br>
+    <p>Nous vous remercions pour l’intérêt porté à notre organisation et vous souhaitons bonne chance.</p>
+    <p>Cordialement,</p>
+    <p><strong>L'équipe IMADEL</strong></p>
+  `
+});
+
+      console.log('Email de confirmation envoyé au candidat :', application.email);
+    } catch (emailError) {
+      console.error('Échec de l’envoi de l’email de confirmation :', emailError.message);
+    }
+
+    try {
+     await sendEmail({
+  email: process.env.ADMIN_EMAIL || 'admin@imadel.org',
+  subject: `Nouvelle candidature reçue - ${job.title}`,
+  html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #2563eb;">Nouvelle Candidature Reçue</h2>
+            
+            <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #1f2937; margin-top: 0;">Informations du Poste</h3>
+              <p><strong>Poste:</strong> ${job.title}</p>
+              <p><strong>Lieu:</strong> ${job.location}</p>
+              <p><strong>Date de candidature:</strong> ${new Date().toLocaleDateString('fr-FR')}</p>
+            </div>
+
+            <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #1f2937; margin-top: 0;">Informations du Candidat</h3>
+              <p><strong>Nom complet:</strong> ${fullName}</p>
+              <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
+              <p><strong>Téléphone:</strong> ${phone}</p>
+              <p><strong>Adresse:</strong> ${address}</p>
+            </div>
+
+            <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #1f2937; margin-top: 0;">Lettre de Motivation</h3>
+              <p style="white-space: pre-wrap;">${coverLetter || 'Non fournie'}</p>
+            </div>
+
+            <div style="margin: 30px 0;">
+              <a href="${resume}" 
+                 style="display: inline-block; background-color: #2563eb; color: white; 
+                        padding: 12px 24px; text-decoration: none; border-radius: 6px; 
+                        font-weight: bold;">
+                📄 Télécharger le CV
+              </a>
+            </div>
+
+            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+            
+            <p style="color: #6b7280; font-size: 14px;">
+              Pour gérer cette candidature, connectez-vous au <a href="https://imadelapi-production.up.railway.app/admin">panneau d'administration</a>.
+            </p>
+          </div>
+        `
+      });
+       console.log('Email de notification admin envoyé');
+    } catch (emailError) {
+      console.error(' Échec de l’envoi de l’email de notification admin :', emailError.message);
+    }
+    
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -147,9 +165,9 @@ export const submitApplication = async (req, res) => {
   }
 };
 
-// @desc    Get all applications (Admin only)
-// @route   GET /api/applications
-// @access  Private
+// Get all applications (Admin only)
+// GET /api/applications
+// access  Private
 export const getApplications = async (req, res) => {
   try {
     const { status, jobId } = req.query;
@@ -177,9 +195,9 @@ export const getApplications = async (req, res) => {
   }
 };
 
-// @desc    Get single application
-// @route   GET /api/applications/:id
-// @access  Private
+// Get single application
+// GET /api/applications/:id
+// access  Private
 export const getApplication = async (req, res) => {
   try {
     const application = await Application.findById(req.params.id)
@@ -205,9 +223,9 @@ export const getApplication = async (req, res) => {
   }
 };
 
-// @desc    Update application status
-// @route   PUT /api/applications/:id
-// @access  Private (Admin only)
+//  Update application status
+// PUT /api/applications/:id
+// access  Private (Admin only)
 export const updateApplicationStatus = async (req, res) => {
   try {
     const { status, adminNotes } = req.body;
@@ -221,7 +239,7 @@ export const updateApplicationStatus = async (req, res) => {
     if (!application) {
       return res.status(404).json({
         success: false,
-        message: 'Application not found'
+        message: 'Candidature introuvable.'
       });
     }
 
@@ -232,7 +250,7 @@ export const updateApplicationStatus = async (req, res) => {
 
       switch (status) {
         case 'reviewing':
-          emailSubject = 'Your Application is Under Review';
+          emailSubject =  'Mise à jour de votre candidature';
           emailMessage = `
             <h1>Mise à jour de votre candidature</h1>
             <p>Bonjour ${application.fullName},</p>
@@ -241,7 +259,7 @@ export const updateApplicationStatus = async (req, res) => {
           `;
           break;
         case 'shortlisted':
-          emailSubject = 'You Have Been Shortlisted!';
+          emailSubject = 'Félicitations - Vous êtes présélectionné(e)';
           emailMessage = `
             <h1>Félicitations!</h1>
             <p>Bonjour ${application.fullName},</p>
@@ -250,7 +268,7 @@ export const updateApplicationStatus = async (req, res) => {
           `;
           break;
         case 'interviewed':
-          emailSubject = 'Interview Scheduled';
+          emailSubject = 'Entretien planifié';
           emailMessage = `
             <h1>Entretien planifié</h1>
             <p>Bonjour ${application.fullName},</p>
@@ -259,7 +277,7 @@ export const updateApplicationStatus = async (req, res) => {
           `;
           break;
         case 'accepted':
-          emailSubject = 'Congratulations - Job Offer';
+          emailSubject = 'Offre d’emploi - Félicitations';
           emailMessage = `
             <h1>Félicitations!</h1>
             <p>Bonjour ${application.fullName},</p>
@@ -268,7 +286,7 @@ export const updateApplicationStatus = async (req, res) => {
           `;
           break;
         case 'rejected':
-          emailSubject = 'Application Status Update';
+          emailSubject = 'Mise à jour de votre candidature';
           emailMessage = `
             <h1>Mise à jour de votre candidature</h1>
             <p>Bonjour ${application.fullName},</p>
@@ -290,11 +308,12 @@ export const updateApplicationStatus = async (req, res) => {
             <p><strong>L'équipe IMADEL</strong></p>
           `
         });
-        console.log('✅ Status update email sent to applicant');
+         console.log('Email de mise à jour du statut envoyé au candidat');
       }
     } catch (emailError) {
-      console.error('❌ Failed to send status update email:', emailError.message);
+      console.error('Échec de l’envoi de l’email de mise à jour du statut :', emailError.message);
     }
+
 
     res.status(200).json({
       success: true,
@@ -319,18 +338,17 @@ export const deleteApplication = async (req, res) => {
     if (!application) {
       return res.status(404).json({
         success: false,
-        message: 'Application not found'
+        message: 'Candidature introuvable.'
       });
     }
 
     res.status(200).json({
       success: true,
-      message: 'Application deleted successfully'
+      message: 'Candidature supprimée avec succès.'
     });
   } catch (error) {
     res.status(500).json({
-      success: false,
-      message: 'Server error',
+      success: 'Erreur serveur',
       error: error.message
     });
   }

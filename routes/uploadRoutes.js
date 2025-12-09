@@ -1,4 +1,3 @@
-// routes/uploadRoutes.js
 import express from 'express';
 import {
   uploadImage,
@@ -12,6 +11,8 @@ const router = express.Router();
 
 router.post('/image', protect, upload.single('image'), uploadImage);
 router.post('/images', protect, upload.array('images', 10), uploadMultipleImages);
-router.delete('/:filename', protect, deleteImage);
+
+// IMPORTANT: delete uses public_id
+router.delete('/:public_id', protect, deleteImage);
 
 export default router;
