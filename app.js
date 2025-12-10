@@ -33,8 +33,12 @@ connectDB();
 // Middleware
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://127.0.0.1:5173"], // adjust as needed
-    credentials: true, // only if needed
+    origin: [
+      "http://localhost:5173",
+      "http://127.0.0.1:5173",
+      "https://imadel.netlify.app" // deployed frontend
+    ],
+    credentials: true, // if your API uses cookies
   })
 );
 
