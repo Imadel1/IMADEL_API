@@ -2,36 +2,69 @@
 import Newsletter from '../Models/Newsletter.js';
 import sendEmail from '../Utils/sendEmail.js';
 
-// @desc    Get all newsletter subscribers
-// @route   GET /api/newsletters
-// @access  Private (Admin only)
+/*
+|--------------------------------------------------------------------------
+| GET /api/newsletters
+| Admin – Get all subscribers (optional filter)
+|--------------------------------------------------------------------------
+*/
 export const getSubscribers = async (req, res) => {
   try {
     const { subscribed } = req.query;
-    
-    let query = {};
-    
-    if (subscribed !== undefined) query.subscribed = subscribed === 'true';
 
-    const subscribers = await Newsletter.find(query).sort({ createdAt: -1 });
+    const filter = {};
+    if (subscribed !== undefined) {
+      filter.subscribed = subscribed === "true";
+    }
 
-    res.status(200).json({
+    const subscribers = await Newsletter.find(filter).sort({ createdAt: -1 });
+
+    return res.status(200).json({
       success: true,
       count: subscribers.length,
-      subscribers
+      subscribers,
     });
+
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: 'Server error',
-      error: error.message
+      message: "Server error",
+      error: error.message,
     });
   }
 };
 
-// @desc    Subscribe to newsletter
-// @route   POST /api/newsletters/subscribe
-// @access  Public
+/*
+|--------------------------------------------------------------------------
+| PUBLIC GET /api/newsletters/public
+| Frontend – Return only subscribed users (public access)
+|--------------------------------------------------------------------------
+*/
+export const getPublicSubscribers = async (req, res) => {
+  try {
+    const subscribers = await Newsletter.find({ subscribed: true }).lean();
+
+    return res.status(200).json({
+      success: true,
+      count: subscribers.length,
+      subscribers,
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+/*
+|--------------------------------------------------------------------------
+| POST /api/newsletters/subscribe
+| Public – Subscribe or resubscribe user
+|--------------------------------------------------------------------------
+*/
 export const subscribe = async (req, res) => {
   try {
     const { email, name } = req.body;
@@ -39,98 +72,106 @@ export const subscribe = async (req, res) => {
     if (!email) {
       return res.status(400).json({
         success: false,
-        message: 'Email is required'
+        message: "Email is required",
       });
     }
 
-    // Check if already subscribed
+    // Look for existing subscriber
     let subscriber = await Newsletter.findOne({ email });
 
-    if (subscriber) {
-      if (subscriber.subscribed) {
-        return res.status(400).json({
-          success: false,
-          message: 'Email already subscribed'
-        });
-      } else {
-        // Resubscribe
-        subscriber.subscribed = true;
-        subscriber.subscribedAt = Date.now();
-        subscriber.unsubscribedAt = null;
-        if (name) subscriber.name = name;
-        await subscriber.save();
-
-        // Send welcome email
-        try {
-          await sendEmail({
-            email: subscriber.email,
-            subject: 'Bienvenue à la Newsletter IMADEL',
-            message: 'Merci de vous être réinscrit à notre newsletter!',
-            html: `
-              <h1>Bienvenue ${name || ''}!</h1>
-              <p>Merci de vous être réinscrit à la newsletter IMADEL.</p>
-              <p>Vous recevrez désormais nos dernières actualités et mises à jour.</p>
-            `
-          });
-          console.log('✅ Welcome email sent to:', subscriber.email);
-        } catch (emailError) {
-          console.error('❌ Email error:', emailError.message);
-          // Continue even if email fails
-        }
-
-        return res.status(200).json({
-          success: true,
-          message: 'Successfully resubscribed to newsletter',
-          subscriber
-        });
-      }
+    /*
+    |-----------------------
+    | Already subscribed
+    |-----------------------
+    */
+    if (subscriber?.subscribed) {
+      return res.status(400).json({
+        success: false,
+        message: "Email already subscribed",
+      });
     }
 
-    // Create new subscriber
+    /*
+    |-----------------------
+    | Resubscribe user
+    |-----------------------
+    */
+    if (subscriber) {
+      subscriber.subscribed = true;
+      subscriber.subscribedAt = Date.now();
+      subscriber.unsubscribedAt = null;
+      if (name) subscriber.name = name;
+      await subscriber.save();
+
+      sendWelcomeEmail(subscriber.email, name);
+
+      return res.status(200).json({
+        success: true,
+        message: "Successfully resubscribed to newsletter",
+        subscriber,
+      });
+    }
+
+    /*
+    |-----------------------
+    | New subscriber
+    |-----------------------
+    */
     subscriber = await Newsletter.create({
       email,
       name,
-      subscribed: true
+      subscribed: true,
     });
 
-    // Send welcome email to new subscriber
-    try {
-      await sendEmail({
-        email: subscriber.email,
-        subject: 'Bienvenue à la Newsletter IMADEL',
-        message: 'Merci de vous être inscrit à notre newsletter!',
-        html: `
-          <h1>Bienvenue ${name || ''}!</h1>
-          <p>Merci de vous être inscrit à la newsletter IMADEL.</p>
-          <p>Vous recevrez désormais nos dernières actualités sur nos projets de développement au Mali.</p>
-          <br>
-          <p>Cordialement,</p>
-          <p><strong>L'équipe IMADEL</strong></p>
-        `
-      });
-      console.log('✅ Welcome email sent to:', subscriber.email);
-    } catch (emailError) {
-      console.error('❌ Email error:', emailError.message);
-      // Continue even if email fails - subscription is still created
-    }
+    sendWelcomeEmail(subscriber.email, name);
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
-      message: 'Successfully subscribed to newsletter',
-      subscriber
+      message: "Successfully subscribed to newsletter",
+      subscriber,
     });
+
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: 'Server error',
-      error: error.message
+      message: "Server error",
+      error: error.message,
     });
   }
 };
 
-// @desc    Unsubscribe from newsletter
-// @route   POST /api/newsletters/unsubscribe
-// @access  Public
+/*
+|--------------------------------------------------------------------------
+| Helper function: Send welcome email
+|--------------------------------------------------------------------------
+*/
+const sendWelcomeEmail = async (email, name = "") => {
+  try {
+    await sendEmail({
+      email,
+      subject: "Bienvenue à la Newsletter IMADEL",
+      html: `
+        <h1>Bienvenue ${name} !</h1>
+        <p>Merci de vous être inscrit à la newsletter IMADEL.</p>
+        <p>Vous recevrez désormais nos dernières actualités et mises à jour.</p>
+        <br>
+        <p>Cordialement,</p>
+        <p><strong>L'équipe IMADEL</strong></p>
+      `,
+    });
+
+    console.log("📨 Welcome email sent to:", email);
+  } catch (err) {
+    console.error("❌ Email sending failed for:", email, "| Reason:", err.message);
+  }
+};
+
+/*
+|--------------------------------------------------------------------------
+| POST /api/newsletters/unsubscribe
+| Public – Unsubscribe user
+|--------------------------------------------------------------------------
+*/
 export const unsubscribe = async (req, res) => {
   try {
     const { email } = req.body;
@@ -138,7 +179,7 @@ export const unsubscribe = async (req, res) => {
     if (!email) {
       return res.status(400).json({
         success: false,
-        message: 'Email is required'
+        message: "Email is required",
       });
     }
 
@@ -147,7 +188,7 @@ export const unsubscribe = async (req, res) => {
     if (!subscriber) {
       return res.status(404).json({
         success: false,
-        message: 'Email not found in newsletter list'
+        message: "Email not found",
       });
     }
 
@@ -155,22 +196,26 @@ export const unsubscribe = async (req, res) => {
     subscriber.unsubscribedAt = Date.now();
     await subscriber.save();
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-      message: 'Successfully unsubscribed from newsletter'
+      message: "Successfully unsubscribed",
     });
+
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: 'Server error',
-      error: error.message
+      message: "Server error",
+      error: error.message,
     });
   }
 };
 
-// @desc    Delete subscriber
-// @route   DELETE /api/newsletters/:id
-// @access  Private (Admin only)
+/*
+|--------------------------------------------------------------------------
+| DELETE /api/newsletters/:id
+| Admin – Delete subscriber
+|--------------------------------------------------------------------------
+*/
 export const deleteSubscriber = async (req, res) => {
   try {
     const subscriber = await Newsletter.findByIdAndDelete(req.params.id);
@@ -178,19 +223,20 @@ export const deleteSubscriber = async (req, res) => {
     if (!subscriber) {
       return res.status(404).json({
         success: false,
-        message: 'Subscriber not found'
+        message: "Subscriber not found",
       });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-      message: 'Subscriber deleted successfully'
+      message: "Subscriber deleted successfully",
     });
+
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: 'Server error',
-      error: error.message
+      message: "Server error",
+      error: error.message,
     });
   }
 };
