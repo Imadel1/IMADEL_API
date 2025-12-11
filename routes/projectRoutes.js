@@ -1,23 +1,23 @@
-// routes/jobRoutes.js
+// routes/projectRoutes.js
 import express from 'express';
 import {
-  getJobs,
-  getJob,
-  createJob,
-  updateJob,
-  deleteJob
-} from '../Controllers/jobController.js';
+  getProjects,
+  getProject,
+  createProject,
+  updateProject,
+  deleteProject
+} from '../Controllers/projectController.js';
 import { protect } from '../Middlewares/authMiddleware.js';
 
 const router = express.Router();
 
 router.route('/')
-  .get(getJobs)
-  .post(protect, createJob);
+  .get(getProjects)
+  .post(protect, createProject);
 
 router.route('/:id')
-  .get(getJob)
-  .put(protect, updateJob)
-  .delete(protect, deleteJob);
+  .get(getProject)
+  .put(protect, updateProject)
+  .delete(protect, deleteProject);
 
 export default router;
