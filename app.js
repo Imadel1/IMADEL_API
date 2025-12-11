@@ -19,6 +19,8 @@ import uploadRoutes from './routes/uploadRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import applicationRoutes from './routes/applicationRoutes.js';
 import donationRoutes from './routes/donationRoutes.js';
+import newsRoutes from './routes/newsRoutes.js';
+
 
 // ES6 module fix for __dirname
 // const __filename = fileURLToPath(import.meta.url);
@@ -68,6 +70,7 @@ app.use('/api/uploads', uploadRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/donations', donationRoutes);
+app.use('/api/news', newsRoutes);
 
 
 // Health check
