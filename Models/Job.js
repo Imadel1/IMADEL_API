@@ -102,11 +102,11 @@ jobSchema.post('save', async function(doc) {
         
         await Promise.all(emailPromises);
         const itemType = doc.listingType === 'proposal' ? 'proposal' : 'job';
-        console.log(`✅ Notified ${subscribers.length} subscribers about new ${itemType}: ${doc.title}`);
+        console.log(`Notified ${subscribers.length} subscribers about new ${itemType}: ${doc.title}`);
       }
     } catch (error) {
       const itemType = doc.listingType === 'proposal' ? 'proposal' : 'job';
-      console.error(`❌ Error notifying subscribers about new ${itemType}:`, error.message);
+      console.error(`Error notifying subscribers about new ${itemType}:`, error.message);
     }
   }
 });

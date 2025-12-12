@@ -65,10 +65,10 @@ newsSchema.post('save', async function(doc) {
         );
         
         await Promise.all(emailPromises);
-        console.log(`✅ Notified ${subscribers.length} subscribers about new news: ${doc.title}`);
+        console.log(`Notified ${subscribers.length} subscribers about new news: ${doc.title}`);
       }
     } catch (error) {
-      console.error('❌ Error notifying subscribers about new news:', error.message);
+      console.error('Error notifying subscribers about new news:', error.message);
     }
   }
 });

@@ -13,7 +13,7 @@ const seedAdmin = async () => {
     const adminExists = await Admin.findOne({ email: process.env.ADMIN_EMAIL });
 
     if (adminExists) {
-      console.log('❌ Admin user already exists');
+      console.log(' Admin user already exists');
       process.exit(1);
     }
 
@@ -32,7 +32,7 @@ const seedAdmin = async () => {
 
     process.exit(0);
   } catch (error) {
-    console.error(`❌ Error: ${error.message}`);
+    console.error(`Error: ${error.message}`);
     process.exit(1);
   }
 };
