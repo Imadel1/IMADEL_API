@@ -191,7 +191,7 @@ const seedData = async () => {
   try {
     await connectDB();
 
-    console.log('🗑️  Suppression des données existantes...');
+    console.log('Suppression des données existantes...');
     await Project.deleteMany();
     await Job.deleteMany();
     await Partner.deleteMany();
@@ -199,24 +199,24 @@ const seedData = async () => {
 
     console.log('🌱 Ajout des projets...');
     await Project.insertMany(sampleProjects);
-    console.log(`✅ ${sampleProjects.length} projets créés`);
+    console.log(`${sampleProjects.length} projets créés`);
 
     console.log('🌱 Ajout des emplois...');
     await Job.insertMany(sampleJobs);
-    console.log(`✅ ${sampleJobs.length} emplois créés`);
+    console.log(` ${sampleJobs.length} emplois créés`);
 
     console.log('🌱 Ajout des partenaires...');
     await Partner.insertMany(samplePartners);
-    console.log(`✅ ${samplePartners.length} partenaires créés`);
+    console.log(` ${samplePartners.length} partenaires créés`);
 
     console.log('🌱 Ajout des bureaux...');
     await Office.insertMany(sampleOffices);
-    console.log(`✅ ${sampleOffices.length} bureaux créés`);
+    console.log(` ${sampleOffices.length} bureaux créés`);
 
     console.log('🎉 Données d\'exemple ajoutées avec succès!');
     process.exit(0);
   } catch (error) {
-    console.error(`❌ Erreur: ${error.message}`);
+    console.error(` Erreur: ${error.message}`);
     process.exit(1);
   }
 };

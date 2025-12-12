@@ -1,17 +1,19 @@
 // Controllers/jobController.js
 import Job from '../Models/Job.js';
 
-// @desc    Get all jobs
+// @desc    Get all jobs and proposals
 // @route   GET /api/jobs
 // @access  Public
 export const getJobs = async (req, res) => {
   try {
-    const { status, type } = req.query;
+    const { status, type, listingType } = req.query;
     
     let query = { published: true };
     
     if (status) query.status = status;
     if (type) query.type = type;
+    // Filter by listingType if provided (job or proposal)
+    if (listingType) query.listingType = listingType;
 
     const jobs = await Job.find(query).sort({ createdAt: -1 });
 
