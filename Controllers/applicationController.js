@@ -64,18 +64,6 @@ export const submitApplication = async (req, res) => {
       coverLetter,
     });
 
-    res.status(201).json({
-      success: true,
-      message: 'Application submitted successfully',
-      application: {
-        id: application._id,
-        jobTitle: application.jobTitle,
-        applicantName: application.fullName,
-        status: application.status,
-        appliedAt: application.appliedAt
-      }
-    });
-
     // Send emails asynchronously without blocking response
     try {
      await sendEmail({
@@ -155,7 +143,17 @@ export const submitApplication = async (req, res) => {
     } catch (emailError) {
       console.error(' Échec de l’envoi de l’email de notification admin :', emailError.message);
     }
-    
+      res.status(201).json({
+      success: true,
+      message: 'Application submitted successfully',
+      application: {
+        id: application._id,
+        jobTitle: application.jobTitle,
+        applicantName: application.fullName,
+        status: application.status,
+        appliedAt: application.appliedAt
+      }
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
